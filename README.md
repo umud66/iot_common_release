@@ -81,12 +81,15 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 
 执行成功后会生成 Release，包含：
 
-- `seacontroll-http-v0.1.0.tar.gz`
-- `seacontroll-mqtt-v0.1.0.tar.gz`
+- `seacontroll-http-v0.1.0-linux-amd64.tar.gz`
+- `seacontroll-http-v0.1.0-linux-arm64.tar.gz`
+- `seacontroll-http-v0.1.0-darwin-arm64.tar.gz`
+- `seacontroll-mqtt-v0.1.0-linux-amd64.tar.gz`
+- `seacontroll-mqtt-v0.1.0-linux-arm64.tar.gz`
+- `seacontroll-mqtt-v0.1.0-darwin-arm64.tar.gz`
 - `SHA256SUMS`
 
-HTTP 压缩包只包含 HTTP 服务二进制和 HTTP 示例配置。
-MQTT 压缩包只包含 MQTT 服务二进制和 MQTT 示例配置。
+每个压缩包只包含一个平台、一个服务的二进制和对应示例配置。
 
 ## 容器镜像
 

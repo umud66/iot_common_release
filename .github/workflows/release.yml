@@ -117,8 +117,12 @@ jobs:
 
           ### 产物
 
-          - `seacontroll-http-${{ inputs.version }}.tar.gz`
-          - `seacontroll-mqtt-${{ inputs.version }}.tar.gz`
+          - `seacontroll-http-${{ inputs.version }}-linux-amd64.tar.gz`
+          - `seacontroll-http-${{ inputs.version }}-linux-arm64.tar.gz`
+          - `seacontroll-http-${{ inputs.version }}-darwin-arm64.tar.gz`
+          - `seacontroll-mqtt-${{ inputs.version }}-linux-amd64.tar.gz`
+          - `seacontroll-mqtt-${{ inputs.version }}-linux-arm64.tar.gz`
+          - `seacontroll-mqtt-${{ inputs.version }}-darwin-arm64.tar.gz`
           - `SHA256SUMS`
           - `docker-compose.release.example.yml`
 
@@ -154,8 +158,12 @@ jobs:
           body_path: dist/RELEASE_NOTES.md
           prerelease: ${{ inputs.prerelease }}
           files: |
-            dist/seacontroll-http-${{ inputs.version }}.tar.gz
-            dist/seacontroll-mqtt-${{ inputs.version }}.tar.gz
+            dist/seacontroll-http-${{ inputs.version }}-linux-amd64.tar.gz
+            dist/seacontroll-http-${{ inputs.version }}-linux-arm64.tar.gz
+            dist/seacontroll-http-${{ inputs.version }}-darwin-arm64.tar.gz
+            dist/seacontroll-mqtt-${{ inputs.version }}-linux-amd64.tar.gz
+            dist/seacontroll-mqtt-${{ inputs.version }}-linux-arm64.tar.gz
+            dist/seacontroll-mqtt-${{ inputs.version }}-darwin-arm64.tar.gz
             dist/checksums/SHA256SUMS
             templates/docker-compose.release.example.yml
             templates/seacontroll-http.yaml

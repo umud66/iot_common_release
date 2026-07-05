@@ -53,20 +53,28 @@ fi
 cd "${DIST_DIR}/bin"
 sha256sum * > "${DIST_DIR}/checksums/SHA256SUMS"
 
-package_app() {
+package_one() {
   local app="$1"
-  local package_dir="${DIST_DIR}/packages/seacontroll-${app}-${VERSION}"
+  local goos="$2"
+  local goarch="$3"
+  local binary="seacontroll-${app}-${goos}-${goarch}"
+  local package_name="seacontroll-${app}-${VERSION}-${goos}-${goarch}"
+  local package_dir="${DIST_DIR}/packages/${package_name}"
   rm -rf "${package_dir}"
   mkdir -p "${package_dir}/bin" "${package_dir}/config"
-  cp "${DIST_DIR}/bin"/seacontroll-${app}-* "${package_dir}/bin/"
-  cp "${DIST_DIR}/checksums/SHA256SUMS" "${package_dir}/"
+  cp "${DIST_DIR}/bin/${binary}" "${package_dir}/bin/seacontroll-${app}"
   if [[ -f "${DIST_DIR}/config/seacontroll-${app}.yaml" ]]; then
     cp "${DIST_DIR}/config/seacontroll-${app}.yaml" "${package_dir}/config/"
   fi
-  (cd "${DIST_DIR}/packages" && tar -czf "${DIST_DIR}/seacontroll-${app}-${VERSION}.tar.gz" "seacontroll-${app}-${VERSION}")
+  sha256sum "${package_dir}/bin/seacontroll-${app}" > "${package_dir}/SHA256SUMS"
+  (cd "${DIST_DIR}/packages" && tar -czf "${DIST_DIR}/${package_name}.tar.gz" "${package_name}")
 }
 
-package_app http
-package_app mqtt
+for target in linux/amd64 linux/arm64 darwin/arm64; do
+  goos="${target%/*}"
+  goarch="${target#*/}"
+  package_one http "${goos}" "${goarch}"
+  package_one mqtt "${goos}" "${goarch}"
+done
 
 echo "构建完成：${DIST_DIR}"
