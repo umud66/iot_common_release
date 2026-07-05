@@ -17,9 +17,15 @@ on:
         required: true
         default: true
         type: boolean
+      publish_images:
+        description: 是否构建并推送 GHCR 容器镜像
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   backend:
@@ -30,6 +36,7 @@ jobs:
       BACKEND_REF: ${{ inputs.backend_ref }}
       BACKEND_REPO: ${{ vars.BACKEND_REPO || 'umud66/iot_common_server' }}
       SOURCE_TOKEN: ${{ secrets.SOURCE_TOKEN }}
+      IMAGE_NAMESPACE: ghcr.io/${{ github.repository_owner }}
       GOTOOLCHAIN: auto
     steps:
       - name: Checkout release repo
@@ -48,6 +55,58 @@ jobs:
       - name: Build backend
         run: ./scripts/build-backend.sh
 
+      - name: Setup Docker Buildx
+        if: ${{ inputs.publish_images }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: ${{ inputs.publish_images }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push HTTP image
+        if: ${{ inputs.publish_images }}
+        uses: docker/build-push-action@v6
+        with:
+          context: sources/backend
+          file: ./docker/backend-service.Dockerfile
+          build-args: |
+            APP=http
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/seacontroll-http:${{ inputs.version }}
+            ${{ env.IMAGE_NAMESPACE }}/seacontroll-http:latest
+
+      - name: Build and push MQTT image
+        if: ${{ inputs.publish_images }}
+        uses: docker/build-push-action@v6
+        with:
+          context: sources/backend
+          file: ./docker/backend-service.Dockerfile
+          build-args: |
+            APP=mqtt
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/seacontroll-mqtt:${{ inputs.version }}
+            ${{ env.IMAGE_NAMESPACE }}/seacontroll-mqtt:latest
+
+      - name: Build and push Postgres image
+        if: ${{ inputs.publish_images }}
+        uses: docker/build-push-action@v6
+        with:
+          context: sources/backend
+          file: ./docker/postgres.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/seacontroll-postgres:${{ inputs.version }}
+            ${{ env.IMAGE_NAMESPACE }}/seacontroll-postgres:latest
+
       - name: Write release notes
         run: |
           mkdir -p dist
@@ -58,8 +117,18 @@ jobs:
 
           ### 产物
 
-          - `seacontroll-backend-${{ inputs.version }}.tar.gz`
+          - `seacontroll-http-${{ inputs.version }}.tar.gz`
+          - `seacontroll-mqtt-${{ inputs.version }}.tar.gz`
           - `SHA256SUMS`
+          - `docker-compose.release.example.yml`
+
+          ### 容器镜像
+
+          如果本次运行启用了 `publish_images`，会推送：
+
+          - `${{ env.IMAGE_NAMESPACE }}/seacontroll-http:${{ inputs.version }}`
+          - `${{ env.IMAGE_NAMESPACE }}/seacontroll-mqtt:${{ inputs.version }}`
+          - `${{ env.IMAGE_NAMESPACE }}/seacontroll-postgres:${{ inputs.version }}`
 
           ### 后端二进制
 
@@ -85,5 +154,9 @@ jobs:
           body_path: dist/RELEASE_NOTES.md
           prerelease: ${{ inputs.prerelease }}
           files: |
-            dist/seacontroll-backend-${{ inputs.version }}.tar.gz
+            dist/seacontroll-http-${{ inputs.version }}.tar.gz
+            dist/seacontroll-mqtt-${{ inputs.version }}.tar.gz
             dist/checksums/SHA256SUMS
+            templates/docker-compose.release.example.yml
+            templates/seacontroll-http.yaml
+            templates/seacontroll-mqtt.yaml
