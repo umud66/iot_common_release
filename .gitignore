@@ -1,0 +1,8 @@
+.DS_Store
+sources/
+dist/
+tmp/
+*.log
+.env
+.env.*
+!.env.example

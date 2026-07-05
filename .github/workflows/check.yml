@@ -1,0 +1,19 @@
+name: Check Release Scripts
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  shellcheck:
+    name: Validate shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax check
+        run: |
+          bash -n scripts/checkout-sources.sh
+          bash -n scripts/build-backend.sh

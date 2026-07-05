@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: seacontroll
+      POSTGRES_PASSWORD: seacontroll
+      POSTGRES_DB: seacontroll
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+# 中文注释：二进制 Release 默认由用户直接运行 http/mqtt 进程。
+# 如需容器化部署，后续可以在 release 仓库继续增加 Docker 镜像构建。
+volumes:
+  postgres-data:

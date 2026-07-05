@@ -1,0 +1,89 @@
+name: Build SeaControll Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 发布版本号，例如 v0.1.0
+        required: true
+        type: string
+      backend_ref:
+        description: 后端源码分支、标签或 commit
+        required: true
+        default: master
+        type: string
+      prerelease:
+        description: 是否作为预发布版本
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  backend:
+    name: Build backend binaries
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
+      BACKEND_REF: ${{ inputs.backend_ref }}
+      BACKEND_REPO: ${{ vars.BACKEND_REPO || 'umud66/iot_common_server' }}
+      SOURCE_TOKEN: ${{ secrets.SOURCE_TOKEN }}
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Checkout release repo
+        uses: actions/checkout@v4
+
+      - name: Checkout source repositories
+        run: ./scripts/checkout-sources.sh
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: sources/backend/go.mod
+          cache: true
+          cache-dependency-path: sources/backend/go.sum
+
+      - name: Build backend
+        run: ./scripts/build-backend.sh
+
+      - name: Write release notes
+        run: |
+          mkdir -p dist
+          cat > dist/RELEASE_NOTES.md <<'NOTES'
+          ## SeaControll Release
+
+          本 Release 由 `release` 仓库自动构建，只包含可运行产物，不包含业务源码。
+
+          ### 产物
+
+          - `seacontroll-backend-${{ inputs.version }}.tar.gz`
+          - `SHA256SUMS`
+
+          ### 后端二进制
+
+          - `seacontroll-http-linux-amd64`
+          - `seacontroll-http-linux-arm64`
+          - `seacontroll-http-darwin-arm64`
+          - `seacontroll-mqtt-linux-amd64`
+          - `seacontroll-mqtt-linux-arm64`
+          - `seacontroll-mqtt-darwin-arm64`
+
+          ### 源码引用
+
+          - backend: `${{ env.BACKEND_REPO }}@${{ inputs.backend_ref }}`
+
+          Pages 托管在 Cloudflare Pages，不参与本 Release 构建。设备固件也不参与本 Release 构建。
+          NOTES
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: SeaControll ${{ inputs.version }}
+          body_path: dist/RELEASE_NOTES.md
+          prerelease: ${{ inputs.prerelease }}
+          files: |
+            dist/seacontroll-backend-${{ inputs.version }}.tar.gz
+            dist/checksums/SHA256SUMS
