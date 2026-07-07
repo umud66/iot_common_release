@@ -108,7 +108,9 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 Release 会附带：
 
 - `docker-compose.release.example.yml`
+- `docker-compose.postgres-only.yml`
 - `seacontroll-http.yaml`
+- `seacontroll-http.local-binary.yaml`
 - `seacontroll-mqtt.yaml`
 
 建议部署目录：
@@ -135,6 +137,39 @@ docker compose up -d
 ```bash
 docker login ghcr.io
 ```
+
+### PostgreSQL 用容器，HTTP/MQTT 用二进制运行
+
+适合私服部署：数据库交给容器持久化，HTTP/MQTT 下载 Release 里的二进制直接运行。
+
+部署目录示例：
+
+```text
+seacontroll-deploy/
+  docker-compose.yml
+  config/
+    seacontroll-http.yaml
+    seacontroll-mqtt.yaml
+  bin/
+    seacontroll-http
+    seacontroll-mqtt
+```
+
+操作步骤：
+
+```bash
+# 1. 下载 docker-compose.postgres-only.yml，改名为 docker-compose.yml
+# 2. 使用官方 PostgreSQL 镜像启动数据库
+POSTGRES_PASSWORD=请改成强密码 \
+docker compose up -d
+
+# 3. 下载 seacontroll-http-<version>-linux-<arch>.tar.gz 并解压
+# 4. 复制 seacontroll-http.local-binary.yaml 为 config/seacontroll-http.yaml
+# 5. 修改 database.url、publicHost、deviceBrokerUrl、internalToken
+./bin/seacontroll-http -config ./config/seacontroll-http.yaml
+```
+
+如果只先启动 HTTP，不启动 MQTT，页面登录和设备管理可以先用；设备下发命令需要 MQTT 网关可用。
 
 ## 本地测试
 

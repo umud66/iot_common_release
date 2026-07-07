@@ -125,6 +125,7 @@ jobs:
           - `seacontroll-mqtt-${{ inputs.version }}-darwin-arm64.tar.gz`
           - `SHA256SUMS`
           - `docker-compose.release.example.yml`
+          - `docker-compose.postgres-only.yml`
 
           ### 容器镜像
 
@@ -166,5 +167,7 @@ jobs:
             dist/seacontroll-mqtt-${{ inputs.version }}-darwin-arm64.tar.gz
             dist/checksums/SHA256SUMS
             templates/docker-compose.release.example.yml
+            templates/docker-compose.postgres-only.yml
             templates/seacontroll-http.yaml
+            templates/seacontroll-http.local-binary.yaml
             templates/seacontroll-mqtt.yaml
