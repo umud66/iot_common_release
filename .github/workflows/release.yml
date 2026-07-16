@@ -127,6 +127,8 @@ jobs:
           - `docker-compose.release.example.yml`
           - `docker-compose.postgres-only.yml`
 
+          每个 `tar.gz` 根目录只包含一个可执行文件，不包含空目录和示例配置。示例配置以独立文件发布。
+
           ### 容器镜像
 
           如果本次运行启用了 `publish_images`，会推送：

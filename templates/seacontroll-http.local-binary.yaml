@@ -1,0 +1,31 @@
+# SeaControll HTTP 服务配置（PostgreSQL 容器 + HTTP 二进制本机运行）
+http:
+  addr: ":8080"
+  publicScheme: "http"
+  # 改成用户浏览器和设备能访问的服务器 IP 或域名。
+  publicHost: "你的服务器IP或域名"
+  publicPort: "8080"
+
+database:
+  # 本配置用于 HTTP 服务在宿主机直接运行，PostgreSQL 由 docker compose 暴露到 127.0.0.1。
+  url: "postgres://seacontroll:seacontroll@127.0.0.1:5432/seacontroll?sslmode=disable"
+
+drivers:
+  # 可选：后端驱动定义热加载目录，支持 .json/.yaml/.yml。
+  definitionDir: "./config/drivers"
+
+compile:
+  # 必须与 Compile 服务的 COMPILE_SIGNING_SECRET 一致。
+  signingSecret: "seacontroll-dev-compile-signing-key"
+
+mqtt:
+  # 如果 MQTT 也在宿主机直接运行，填 127.0.0.1；如果 MQTT 在另一台机器，改成对应 http(s) 地址。
+  gatewayBaseUrl: "http://127.0.0.1:8082"
+  # 下发给设备连接的 MQTT 地址，必须是设备能访问的公网/局域网地址。
+  deviceBrokerUrl: "tcp://你的服务器IP或域名:1883"
+  internalToken: "请改成随机长字符串"
+
+webauthn:
+  rpId: "你的服务器IP或域名"
+  origin: "http://你的服务器IP或域名:8080"
+  name: "SeaControll"

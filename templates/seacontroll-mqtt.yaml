@@ -1,0 +1,15 @@
+# SeaControll MQTT 网关配置（容器部署示例）
+mqtt:
+  internalHttpAddr: ":8082"
+  brokerUrl: ""
+  embedded: true
+  embeddedListen: ":1883"
+  embeddedBrokerHost: "localhost"
+  embeddedBrokerPort: "1883"
+  backendClientId: "seacontroll-mqtt-gateway"
+  upstreamTopic: "iot/device/+/upstream"
+  internalToken: "请改成和 HTTP 配置一致的随机长字符串"
+
+httpApi:
+  # 容器部署时 MQTT 网关通过 seacontroll-http 服务名转发上行数据。
+  baseUrl: "http://seacontroll-http:8080"

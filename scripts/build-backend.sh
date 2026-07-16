@@ -13,7 +13,7 @@ if [[ ! -f "${BACKEND_DIR}/go.mod" ]]; then
   exit 1
 fi
 
-mkdir -p "${DIST_DIR}/bin" "${DIST_DIR}/checksums" "${DIST_DIR}/config" "${DIST_DIR}/packages"
+mkdir -p "${DIST_DIR}/bin" "${DIST_DIR}/checksums"
 
 cd "${BACKEND_DIR}"
 
@@ -46,10 +46,6 @@ for target in linux/amd64 linux/arm64 darwin/arm64; do
   build_one mqtt ./mqtt/cmd "${goos}" "${goarch}"
 done
 
-if [[ -d "${ROOT_DIR}/templates" ]]; then
-  cp "${ROOT_DIR}/templates"/*.yaml "${DIST_DIR}/config/" 2>/dev/null || true
-fi
-
 cd "${DIST_DIR}/bin"
 sha256sum * > "${DIST_DIR}/checksums/SHA256SUMS"
 
@@ -59,15 +55,10 @@ package_one() {
   local goarch="$3"
   local binary="seacontroll-${app}-${goos}-${goarch}"
   local package_name="seacontroll-${app}-${VERSION}-${goos}-${goarch}"
-  local package_dir="${DIST_DIR}/packages/${package_name}"
-  rm -rf "${package_dir}"
-  mkdir -p "${package_dir}/bin" "${package_dir}/config"
-  cp "${DIST_DIR}/bin/${binary}" "${package_dir}/bin/seacontroll-${app}"
-  if [[ -f "${DIST_DIR}/config/seacontroll-${app}.yaml" ]]; then
-    cp "${DIST_DIR}/config/seacontroll-${app}.yaml" "${package_dir}/config/"
-  fi
-  sha256sum "${package_dir}/bin/seacontroll-${app}" > "${package_dir}/SHA256SUMS"
-  (cd "${DIST_DIR}/packages" && tar -czf "${DIST_DIR}/${package_name}.tar.gz" "${package_name}")
+  local archive_binary="seacontroll-${app}"
+  cp "${DIST_DIR}/bin/${binary}" "${DIST_DIR}/bin/${archive_binary}"
+  (cd "${DIST_DIR}/bin" && tar -czf "${DIST_DIR}/${package_name}.tar.gz" "${archive_binary}")
+  rm -f "${DIST_DIR}/bin/${archive_binary}"
 }
 
 for target in linux/amd64 linux/arm64 darwin/arm64; do

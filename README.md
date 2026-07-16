@@ -39,6 +39,8 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 
 如果没有环境变量，也没有配置文件，服务会在运行目录生成默认配置文件并退出，用户修改后重新启动即可。
 
+这些 YAML 内容都是部署配置，只在服务启动时读取，不会写入数据库。修改后重启对应服务即可生效。
+
 示例配置在：
 
 - `templates/seacontroll-http.yaml`
@@ -89,7 +91,7 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 - `seacontroll-mqtt-v0.1.0-darwin-arm64.tar.gz`
 - `SHA256SUMS`
 
-每个压缩包只包含一个平台、一个服务的二进制和对应示例配置。
+每个压缩包只包含一个平台、一个服务的可执行文件，根目录不包含额外目录。示例配置作为 Release 独立文件发布。
 
 ## 容器镜像
 
@@ -121,6 +123,8 @@ seacontroll-deploy/
   config/
     seacontroll-http.yaml
     seacontroll-mqtt.yaml
+    drivers/
+      driver-custom-relay.yaml
 ```
 
 把 `docker-compose.release.example.yml` 改名为 `docker-compose.yml`，并修改里面的镜像地址：
@@ -163,13 +167,45 @@ seacontroll-deploy/
 POSTGRES_PASSWORD=请改成强密码 \
 docker compose up -d
 
-# 3. 下载 seacontroll-http-<version>-linux-<arch>.tar.gz 并解压
-# 4. 复制 seacontroll-http.local-binary.yaml 为 config/seacontroll-http.yaml
+# 3. 下载 seacontroll-http-<version>-linux-<arch>.tar.gz，解压后把 seacontroll-http 放到 bin/
+# 4. 下载 seacontroll-http.local-binary.yaml，复制为 config/seacontroll-http.yaml
 # 5. 修改 database.url、publicHost、deviceBrokerUrl、internalToken
 ./bin/seacontroll-http -config ./config/seacontroll-http.yaml
 ```
 
+HTTP 服务启动时会自动执行内置数据库迁移，空库不需要手动导入 SQL。
+
 如果只先启动 HTTP，不启动 MQTT，页面登录和设备管理可以先用；设备下发命令需要 MQTT 网关可用。
+
+### 驱动定义热加载
+
+HTTP 服务支持从配置目录热加载后端驱动定义：
+
+```yaml
+drivers:
+  definitionDir: "./config/drivers"
+```
+
+把 `.json / .yaml / .yml` 驱动定义文件放入该目录后，刷新用户端页面即可看到后端新定义，无需重启 HTTP 服务。Pages 侧仍需要同步添加对应 UI Schema 和 `pages/schemas/modules/index.json` 条目。
+
+### Compile 服务
+
+用户端通过 Compile 服务生成 DSL 编译产物和最终 `deviceIR`，HTTP 服务只校验签名：
+
+```yaml
+compile:
+  signingSecret: "必须与 Compile 服务 COMPILE_SIGNING_SECRET 一致"
+```
+
+本地测试可以先运行 `compile` 仓库：
+
+```bash
+cd compile
+export COMPILE_SIGNING_SECRET=seacontroll-dev-compile-signing-key
+npm run dev
+```
+
+然后把 `baseUrl` 设置为 `http://127.0.0.1:8787`。
 
 ## 本地测试
 

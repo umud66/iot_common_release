@@ -1,0 +1,31 @@
+# SeaControll HTTP 服务配置（容器部署示例）
+http:
+  addr: ":8080"
+  publicScheme: "http"
+  # 改成用户浏览器和设备能访问的服务器 IP 或域名。
+  publicHost: "你的服务器IP或域名"
+  publicPort: "8080"
+
+database:
+  # 容器部署时使用 postgres 服务名。
+  url: "postgres://seacontroll:seacontroll@postgres:5432/seacontroll?sslmode=disable"
+
+drivers:
+  # 可选：后端驱动定义热加载目录，支持 .json/.yaml/.yml。
+  definitionDir: "/config/drivers"
+
+compile:
+  # 必须与 Compile 服务的 COMPILE_SIGNING_SECRET 一致。
+  signingSecret: "请改成随机长字符串"
+
+mqtt:
+  # 容器部署时 HTTP 服务通过 seacontroll-mqtt 服务名调用 MQTT 网关。
+  gatewayBaseUrl: "http://seacontroll-mqtt:8082"
+  # 下发给设备连接的 MQTT 地址，必须是设备能访问的公网/局域网地址。
+  deviceBrokerUrl: "tcp://你的服务器IP或域名:1883"
+  internalToken: "请改成随机长字符串"
+
+webauthn:
+  rpId: "你的服务器IP或域名"
+  origin: "http://你的服务器IP或域名:8080"
+  name: "SeaControll"
