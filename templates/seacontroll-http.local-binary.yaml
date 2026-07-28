@@ -1,4 +1,4 @@
-# SeaControll HTTP 服务配置（PostgreSQL 容器 + HTTP 二进制本机运行）
+# CommonIOT HTTP 服务配置（PostgreSQL 容器 + HTTP 二进制本机运行）
 http:
   addr: ":8080"
   publicScheme: "http"
@@ -28,4 +28,4 @@ mqtt:
 webauthn:
   rpId: "你的服务器IP或域名"
   origin: "http://你的服务器IP或域名:8080"
-  name: "SeaControll"
+  name: "CommonIOT"

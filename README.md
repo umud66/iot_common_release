@@ -1,4 +1,4 @@
-# SeaControll Release
+# CommonIOT Release
 
 这个仓库只负责 **编译与发布后端服务**，不保存业务源码。
 
@@ -73,7 +73,7 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 
 进入 GitHub：
 
-`Actions -> Build SeaControll Release -> Run workflow`
+`Actions -> Build CommonIOT Release -> Run workflow`
 
 填写：
 
