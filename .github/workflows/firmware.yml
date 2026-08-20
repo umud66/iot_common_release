@@ -16,6 +16,32 @@ on:
         options:
           - esp32
           - esp32c6
+      idf_role:
+        description: ESP-IDF 产品角色
+        required: true
+        default: device
+        type: choice
+        options:
+          - device
+          - hub
+      idf_board:
+        description: ESP-IDF 硬件板型，Hub 默认自动使用 C6 DevKitC-1
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - esp32-c6-devkitc-1
+      idf_oled:
+        description: 是否启用 SSD1306 OLED
+        required: true
+        default: false
+        type: boolean
+      idf_thread:
+        description: Hub 是否启用 OpenThread
+        required: true
+        default: false
+        type: boolean
   pull_request:
     paths:
       - .github/workflows/firmware.yml
@@ -44,6 +70,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IDF_TARGET: ${{ inputs.idf_target || 'esp32' }}
+      IDF_ROLE: ${{ inputs.idf_role || 'device' }}
+      IDF_BOARD: ${{ inputs.idf_board || 'none' }}
+      IDF_OLED: ${{ inputs.idf_oled || 'false' }}
+      IDF_THREAD: ${{ inputs.idf_thread || 'false' }}
     steps:
       - name: Checkout release repo
         uses: actions/checkout@v4
@@ -64,29 +94,67 @@ jobs:
           target: ${{ env.IDF_TARGET }}
           path: sources/firmware/device
           command: >-
+            set -euo pipefail;
+            if [ "${IDF_ROLE}" = "hub" ] && [ "${IDF_TARGET}" != "esp32c6" ]; then
+              echo "错误：Hub 只支持 esp32c6" >&2;
+              exit 1;
+            fi;
+            if [ "${IDF_THREAD}" = "true" ] && [ "${IDF_ROLE}" != "hub" ]; then
+              echo "错误：OpenThread 只支持 Hub" >&2;
+              exit 1;
+            fi;
+            board="${IDF_BOARD}";
+            if [ "${IDF_ROLE}" = "hub" ] && [ "${board}" = "none" ]; then
+              board="esp32-c6-devkitc-1";
+            fi;
+            defaults="sdkconfig.defaults;sdkconfig.${IDF_ROLE}.defaults";
+            if [ "${IDF_OLED}" = "true" ]; then
+              defaults="${defaults};sdkconfig.oled.defaults";
+            fi;
+            if [ "${IDF_THREAD}" = "true" ]; then
+              defaults="${defaults};sdkconfig.hub-thread.defaults";
+            fi;
+            if [ "${board}" != "none" ]; then
+              defaults="${defaults};boards/${board}/sdkconfig.defaults";
+            fi;
+            echo "ESP-IDF defaults: ${defaults}";
             idf.py -B build
             -D SDKCONFIG=build/sdkconfig
-            -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.device.defaults"
+            -D SDKCONFIG_DEFAULTS="${defaults}"
             build
+          extra_docker_args: >-
+            -e IDF_ROLE=${{ env.IDF_ROLE }}
+            -e IDF_BOARD=${{ env.IDF_BOARD }}
+            -e IDF_OLED=${{ env.IDF_OLED }}
+            -e IDF_THREAD=${{ env.IDF_THREAD }}
 
       - name: Collect ESP-IDF artifacts
         shell: bash
         run: |
           set -euo pipefail
-          artifact_dir="artifacts/esp-idf-${IDF_TARGET}"
+          artifact_dir="artifacts/esp-idf"
           build_dir="sources/firmware/device/build"
           mkdir -p "${artifact_dir}"
-          cp "${build_dir}/commoniot_device.bin" "${artifact_dir}/commoniot-${IDF_TARGET}-device.bin"
-          cp "${build_dir}/bootloader/bootloader.bin" "${artifact_dir}/commoniot-${IDF_TARGET}-bootloader.bin"
-          cp "${build_dir}/partition_table/partition-table.bin" "${artifact_dir}/commoniot-${IDF_TARGET}-partition-table.bin"
+          firmware_name="commoniot-${IDF_TARGET}-${IDF_ROLE}"
+          cp "${build_dir}/commoniot_device.bin" "${artifact_dir}/${firmware_name}.bin"
+          cp "${build_dir}/bootloader/bootloader.bin" "${artifact_dir}/${firmware_name}-bootloader.bin"
+          cp "${build_dir}/partition_table/partition-table.bin" "${artifact_dir}/${firmware_name}-partition-table.bin"
           cp "${build_dir}/flash_args" "${artifact_dir}/flash_args"
+          {
+            echo "target=${IDF_TARGET}"
+            echo "role=${IDF_ROLE}"
+            echo "board=${IDF_BOARD}"
+            echo "oled=${IDF_OLED}"
+            echo "thread=${IDF_THREAD}"
+            echo "firmware_ref=${FIRMWARE_REF}"
+          } > "${artifact_dir}/BUILD_CONFIG.txt"
           sha256sum "${artifact_dir}"/* > "${artifact_dir}/SHA256SUMS"
 
       - name: Upload ESP-IDF artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-esp-idf-${{ env.IDF_TARGET }}
-          path: artifacts/esp-idf-${{ env.IDF_TARGET }}
+          name: firmware-esp-idf-${{ env.IDF_TARGET }}-${{ env.IDF_ROLE }}
+          path: artifacts/esp-idf
           if-no-files-found: error
           retention-days: 14
 

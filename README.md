@@ -99,12 +99,12 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 
 ## 固件编译
 
-进入 GitHub 的 `Actions -> Build CommonIOT Firmware -> Run workflow`，填写固件源码的分支、标签或 commit，并选择 ESP-IDF 目标。工作流会并行生成两个可下载的 Artifact：
+进入 GitHub 的 `Actions -> Build CommonIOT Firmware -> Run workflow`，填写固件源码的分支、标签或 commit，并选择 ESP-IDF 目标、产品角色、板型、OLED 和 OpenThread 选项。工作流会并行生成两个可下载的 Artifact：
 
-- `firmware-esp-idf-<target>`：ESP-IDF 应用、Bootloader、分区表和 `flash_args`
+- `firmware-esp-idf-<target>-<role>`：ESP-IDF 应用、Bootloader、分区表、`flash_args` 和实际构建配置
 - `firmware-esp8266-arduino`：ESP8266 普通固件和 OTA 固件
 
-ESP-IDF 默认使用 `espressif/idf:v6.0.2`，ESP8266 默认构建 PlatformIO 的 `esp01_1m` 与 `esp01_1m_ota` 环境。ESP32-C6 Hub 需要匹配的产品配置，不由本工作流默认发布。
+ESP-IDF 默认使用 `espressif/idf:v6.0.2`，对应本地 `--hub`、`--board`、`--oled`、`--thread` 参数；Hub 未指定板型时自动使用 `esp32-c6-devkitc-1`。ESP8266 不支持 Hub/OLED，固定构建 PlatformIO 的 `esp01_1m` 与 `esp01_1m_ota` 环境。
 
 ## 容器镜像
 
