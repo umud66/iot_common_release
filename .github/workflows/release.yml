@@ -150,7 +150,7 @@ jobs:
 
           - backend: `${{ env.BACKEND_REPO }}@${{ inputs.backend_ref }}`
 
-          Pages 托管在 Cloudflare Pages，不参与本 Release 构建。设备固件也不参与本 Release 构建。
+          Pages 托管在 Cloudflare Pages，不参与本 Release 构建。设备固件通过独立的 `Build CommonIOT Firmware` 工作流生成 Artifact。
           NOTES
 
       - name: Publish GitHub Release

@@ -1,0 +1,152 @@
+name: Build CommonIOT Firmware
+
+on:
+  workflow_dispatch:
+    inputs:
+      firmware_ref:
+        description: 固件源码分支、标签或 commit
+        required: true
+        default: master
+        type: string
+      idf_target:
+        description: ESP-IDF 构建目标
+        required: true
+        default: esp32
+        type: choice
+        options:
+          - esp32
+          - esp32c6
+  pull_request:
+    paths:
+      - .github/workflows/firmware.yml
+      - release.config
+      - README.md
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - .github/workflows/firmware.yml
+      - release.config
+      - README.md
+
+permissions:
+  contents: read
+
+env:
+  FIRMWARE_REPO: ${{ vars.FIRMWARE_REPO || 'umud66/iot_common_firmare' }}
+  FIRMWARE_REF: ${{ inputs.firmware_ref || 'master' }}
+  SOURCE_TOKEN: ${{ secrets.SOURCE_TOKEN || github.token }}
+
+jobs:
+  esp-idf:
+    name: Build ESP-IDF (${{ inputs.idf_target || 'esp32' }})
+    runs-on: ubuntu-latest
+    env:
+      IDF_TARGET: ${{ inputs.idf_target || 'esp32' }}
+    steps:
+      - name: Checkout release repo
+        uses: actions/checkout@v4
+
+      - name: Checkout firmware source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.FIRMWARE_REPO }}
+          ref: ${{ env.FIRMWARE_REF }}
+          token: ${{ env.SOURCE_TOKEN }}
+          path: sources/firmware
+          fetch-depth: 1
+
+      - name: Build ESP-IDF firmware
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.2
+          target: ${{ env.IDF_TARGET }}
+          path: sources/firmware/device
+          command: >-
+            idf.py -B build
+            -D SDKCONFIG=build/sdkconfig
+            -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.device.defaults"
+            build
+
+      - name: Collect ESP-IDF artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir="artifacts/esp-idf-${IDF_TARGET}"
+          build_dir="sources/firmware/device/build"
+          mkdir -p "${artifact_dir}"
+          cp "${build_dir}/commoniot_device.bin" "${artifact_dir}/commoniot-${IDF_TARGET}-device.bin"
+          cp "${build_dir}/bootloader/bootloader.bin" "${artifact_dir}/commoniot-${IDF_TARGET}-bootloader.bin"
+          cp "${build_dir}/partition_table/partition-table.bin" "${artifact_dir}/commoniot-${IDF_TARGET}-partition-table.bin"
+          cp "${build_dir}/flash_args" "${artifact_dir}/flash_args"
+          sha256sum "${artifact_dir}"/* > "${artifact_dir}/SHA256SUMS"
+
+      - name: Upload ESP-IDF artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-esp-idf-${{ env.IDF_TARGET }}
+          path: artifacts/esp-idf-${{ env.IDF_TARGET }}
+          if-no-files-found: error
+          retention-days: 14
+
+  esp8266-arduino:
+    name: Build ESP8266 Arduino
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release repo
+        uses: actions/checkout@v4
+
+      - name: Checkout firmware source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.FIRMWARE_REPO }}
+          ref: ${{ env.FIRMWARE_REF }}
+          token: ${{ env.SOURCE_TOKEN }}
+          path: sources/firmware
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            sources/tmp/platformio
+          key: ${{ runner.os }}-platformio-${{ hashFiles('sources/firmware/device/targets/arduino/esp8266/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-platformio-
+
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+
+      - name: Build ESP8266 Arduino firmware
+        run: >-
+          pio run
+          --project-dir sources/firmware/device/targets/arduino/esp8266
+          --environment esp01_1m
+          --environment esp01_1m_ota
+
+      - name: Collect ESP8266 Arduino artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir="artifacts/esp8266-arduino"
+          build_dir="sources/tmp/platformio/esp8266"
+          mkdir -p "${artifact_dir}"
+          cp "${build_dir}/esp01_1m/firmware.bin" "${artifact_dir}/commoniot-esp8266.bin"
+          cp "${build_dir}/esp01_1m_ota/firmware.bin" "${artifact_dir}/commoniot-esp8266-ota.bin"
+          sha256sum "${artifact_dir}"/* > "${artifact_dir}/SHA256SUMS"
+
+      - name: Upload ESP8266 Arduino artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-esp8266-arduino
+          path: artifacts/esp8266-arduino
+          if-no-files-found: error
+          retention-days: 14

@@ -1,13 +1,15 @@
 # CommonIOT Release
 
-这个仓库只负责 **编译与发布后端服务**，不保存业务源码。
+这个仓库只负责 **编译与发布后端服务和设备固件**，不保存业务源码。
 
 当前自动构建内容：
 
 - `seacontroll-http`
 - `seacontroll-mqtt`
+- ESP-IDF ESP32 普通设备固件
+- ESP8266 Arduino 普通固件和 OTA 固件
 
-Pages 托管在 Cloudflare Pages，不参与本仓库构建。设备固件也不参与本仓库构建。
+Pages 托管在 Cloudflare Pages，不参与本仓库构建。
 
 构建完成后会自动发布到 GitHub Release。
 
@@ -18,8 +20,9 @@ Pages 托管在 Cloudflare Pages，不参与本仓库构建。设备固件也不
 | 模块 | 仓库 |
 | --- | --- |
 | backend | `umud66/iot_common_server` |
+| firmware | `umud66/iot_common_firmare` |
 
-本仓库只拉取并编译 `backend`。
+本仓库只拉取并编译 `backend` 和 `firmware`。固件工作流使用 `FIRMWARE_REPO` 仓库变量覆盖默认源码仓库；私有仓库仍使用 `SOURCE_TOKEN`。
 
 ## 配置文件
 
@@ -66,6 +69,7 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 | 变量 | 默认值 |
 | --- | --- |
 | `BACKEND_REPO` | `umud66/iot_common_server` |
+| `FIRMWARE_REPO` | `umud66/iot_common_firmare` |
 
 变量值只写 `owner/repo`，不要写完整 URL。
 
@@ -92,6 +96,15 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 - `SHA256SUMS`
 
 每个压缩包只包含一个平台、一个服务的可执行文件，根目录不包含额外目录。示例配置作为 Release 独立文件发布。
+
+## 固件编译
+
+进入 GitHub 的 `Actions -> Build CommonIOT Firmware -> Run workflow`，填写固件源码的分支、标签或 commit，并选择 ESP-IDF 目标。工作流会并行生成两个可下载的 Artifact：
+
+- `firmware-esp-idf-<target>`：ESP-IDF 应用、Bootloader、分区表和 `flash_args`
+- `firmware-esp8266-arduino`：ESP8266 普通固件和 OTA 固件
+
+ESP-IDF 默认使用 `espressif/idf:v6.0.2`，ESP8266 默认构建 PlatformIO 的 `esp01_1m` 与 `esp01_1m_ota` 环境。ESP32-C6 Hub 需要匹配的产品配置，不由本工作流默认发布。
 
 ## 容器镜像
 
