@@ -99,7 +99,7 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 
 ## 固件编译
 
-进入 GitHub 的 `Actions -> Build CommonIOT Firmware -> Run workflow`，填写固件源码的分支、标签或 commit，并选择 ESP-IDF 目标、产品角色、板型、OLED 和 OpenThread 选项。工作流会并行生成两个可下载的 Artifact：
+进入 GitHub 的 `Actions -> Build CommonIOT Firmware -> Run workflow`，先选择编译平台：`all`、`espidf` 或 `arduino`；然后填写固件源码的分支、标签或 commit，以及 ESP-IDF 目标、产品角色、板型、OLED 和 OpenThread 选项。默认选择 `all`，工作流会并行生成两个可下载的 Artifact：
 
 - `firmware-esp-idf-<target>-<role>`：ESP-IDF 应用、Bootloader、分区表、`flash_args` 和实际构建配置
 - `firmware-esp8266-arduino`：ESP8266 普通固件和 OTA 固件

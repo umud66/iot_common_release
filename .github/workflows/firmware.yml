@@ -3,6 +3,15 @@ name: Build CommonIOT Firmware
 on:
   workflow_dispatch:
     inputs:
+      platform:
+        description: 选择要编译的平台
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - espidf
+          - arduino
       firmware_ref:
         description: 固件源码分支、标签或 commit
         required: true
@@ -66,6 +75,7 @@ env:
 
 jobs:
   esp-idf:
+    if: ${{ !inputs.platform || inputs.platform == 'all' || inputs.platform == 'espidf' }}
     name: Build ESP-IDF (${{ inputs.idf_target || 'esp32' }})
     runs-on: ubuntu-latest
     env:
@@ -159,6 +169,7 @@ jobs:
           retention-days: 14
 
   esp8266-arduino:
+    if: ${{ !inputs.platform || inputs.platform == 'all' || inputs.platform == 'arduino' }}
     name: Build ESP8266 Arduino
     runs-on: ubuntu-latest
     steps:
