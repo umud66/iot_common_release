@@ -99,10 +99,20 @@ SEACONTROLL_MQTT_CONFIG=./seacontroll-mqtt.yaml ./seacontroll-mqtt
 
 ## 固件编译
 
-进入 GitHub 的 `Actions -> Build CommonIOT Firmware -> Run workflow`，先选择编译平台：`all`、`espidf` 或 `arduino`；然后填写固件源码的分支、标签或 commit，以及 ESP-IDF 目标、产品角色、板型、OLED 和 OpenThread 选项。默认选择 `all`，工作流会并行生成两个可下载的 Artifact：
+进入 GitHub 的 `Actions -> Build CommonIOT Firmware -> Run workflow`，先填写 GitHub Release 版本号，再选择编译平台：`all`、`espidf` 或 `arduino`；然后填写固件源码的分支、标签或 commit，以及 ESP-IDF 目标、产品角色、板型、OLED、OpenThread 和 Arduino 目标选项。Arduino 目标当前只有 `esp8266`。默认选择 `all`，工作流会并行生成两个可下载的 Artifact，并把编译出的 `.bin` 文件上传到对应 GitHub Release：
 
 - `firmware-esp-idf-<target>-<role>`：ESP-IDF 应用、Bootloader、分区表、`flash_args` 和实际构建配置
-- `firmware-esp8266-arduino`：ESP8266 普通固件和 OTA 固件
+- `firmware-arduino-<target>`：ESP8266 普通固件和 OTA 固件
+
+GitHub Release 中的固件文件包括：
+
+- `commoniot-<target>-<role>.bin`
+- `commoniot-<target>-<role>-bootloader.bin`
+- `commoniot-<target>-<role>-partition-table.bin`
+- `commoniot-esp8266.bin`
+- `commoniot-esp8266-ota.bin`
+
+只选择 `espidf` 或 `arduino` 时，Release 只追加本次实际编译平台的 `.bin` 文件。工作流仍保留 Actions Artifact，便于下载 `flash_args`、`BUILD_CONFIG.txt` 和校验文件。
 
 ESP-IDF 默认使用 `espressif/idf:v6.0.2`，对应本地 `--hub`、`--board`、`--oled`、`--thread` 参数；Hub 未指定板型时自动使用 `esp32-c6-devkitc-1`。ESP8266 不支持 Hub/OLED，固定构建 PlatformIO 的 `esp01_1m` 与 `esp01_1m_ota` 环境。
 

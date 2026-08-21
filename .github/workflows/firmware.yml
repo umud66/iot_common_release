@@ -3,6 +3,16 @@ name: Build CommonIOT Firmware
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: GitHub Release 版本号，例如 v0.1.0
+        required: true
+        default: v0.1.0
+        type: string
+      prerelease:
+        description: 是否作为预发布版本
+        required: true
+        default: true
+        type: boolean
       platform:
         description: 选择要编译的平台
         required: true
@@ -51,6 +61,13 @@ on:
         required: true
         default: false
         type: boolean
+      arduino_target:
+        description: Arduino 构建目标
+        required: true
+        default: esp8266
+        type: choice
+        options:
+          - esp8266
   pull_request:
     paths:
       - .github/workflows/firmware.yml
@@ -66,7 +83,7 @@ on:
       - README.md
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   FIRMWARE_REPO: ${{ vars.FIRMWARE_REPO || 'umud66/iot_common_firmare' }}
@@ -170,8 +187,10 @@ jobs:
 
   esp8266-arduino:
     if: ${{ !inputs.platform || inputs.platform == 'all' || inputs.platform == 'arduino' }}
-    name: Build ESP8266 Arduino
+    name: Build Arduino (${{ inputs.arduino_target || 'esp8266' }})
     runs-on: ubuntu-latest
+    env:
+      ARDUINO_TARGET: ${{ inputs.arduino_target || 'esp8266' }}
     steps:
       - name: Checkout release repo
         uses: actions/checkout@v4
@@ -207,7 +226,7 @@ jobs:
       - name: Build ESP8266 Arduino firmware
         run: >-
           pio run
-          --project-dir sources/firmware/device/targets/arduino/esp8266
+          --project-dir sources/firmware/device/targets/arduino/${ARDUINO_TARGET}
           --environment esp01_1m
           --environment esp01_1m_ota
 
@@ -216,7 +235,7 @@ jobs:
         run: |
           set -euo pipefail
           artifact_dir="artifacts/esp8266-arduino"
-          build_dir="sources/tmp/platformio/esp8266"
+          build_dir="sources/tmp/platformio/${ARDUINO_TARGET}"
           mkdir -p "${artifact_dir}"
           cp "${build_dir}/esp01_1m/firmware.bin" "${artifact_dir}/commoniot-esp8266.bin"
           cp "${build_dir}/esp01_1m_ota/firmware.bin" "${artifact_dir}/commoniot-esp8266-ota.bin"
@@ -225,7 +244,46 @@ jobs:
       - name: Upload ESP8266 Arduino artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-esp8266-arduino
+          name: firmware-arduino-${{ env.ARDUINO_TARGET }}
           path: artifacts/esp8266-arduino
           if-no-files-found: error
           retention-days: 14
+
+  publish-firmware-release:
+    name: Publish firmware to GitHub Release
+    needs:
+      - esp-idf
+      - esp8266-arduino
+    if: >-
+      ${{ always() && github.event_name == 'workflow_dispatch' && inputs.version != '' &&
+          (needs['esp-idf'].result == 'success' || needs['esp8266-arduino'].result == 'success') &&
+          needs['esp-idf'].result != 'failure' && needs['esp-idf'].result != 'cancelled' &&
+          needs['esp8266-arduino'].result != 'failure' && needs['esp8266-arduino'].result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: firmware-*
+          path: dist/firmware
+          merge-multiple: false
+
+      - name: Verify firmware bin files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t firmware_bins < <(find dist/firmware -type f -name '*.bin' -print)
+          if (( ${#firmware_bins[@]} == 0 )); then
+            echo "没有找到固件 bin 文件，停止发布" >&2
+            exit 1
+          fi
+          printf '待发布固件：%s\n' "${firmware_bins[@]}"
+
+      - name: Publish firmware bin files
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: CommonIOT Firmware ${{ inputs.version }}
+          prerelease: ${{ inputs.prerelease }}
+          fail_on_unmatched_files: true
+          files: dist/firmware/**/*.bin
