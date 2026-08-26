@@ -208,7 +208,6 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-          cache: pip
 
       - name: Cache PlatformIO
         uses: actions/cache@v4
@@ -216,7 +215,7 @@ jobs:
           path: |
             ~/.platformio/.cache
             sources/tmp/platformio
-          key: ${{ runner.os }}-platformio-${{ hashFiles('sources/firmware/device/targets/arduino/esp8266/platformio.ini') }}
+          key: ${{ runner.os }}-platformio-${{ hashFiles('sources/firmware/device/platforms/arduino/esp8266/platformio.ini') }}
           restore-keys: |
             ${{ runner.os }}-platformio-
 
@@ -226,7 +225,7 @@ jobs:
       - name: Build ESP8266 Arduino firmware
         run: >-
           pio run
-          --project-dir sources/firmware/device/targets/arduino/${ARDUINO_TARGET}
+          --project-dir sources/firmware/device/platforms/arduino/${ARDUINO_TARGET}
           --environment esp01_1m
           --environment esp01_1m_ota
 
@@ -277,7 +276,12 @@ jobs:
             echo "没有找到固件 bin 文件，停止发布" >&2
             exit 1
           fi
-          printf '待发布固件：%s\n' "${firmware_bins[@]}"
+          release_dir="dist/firmware-release"
+          mkdir -p "${release_dir}"
+          for firmware_bin in "${firmware_bins[@]}"; do
+            cp "${firmware_bin}" "${release_dir}/$(basename "${firmware_bin}")"
+          done
+          printf '待发布固件：%s\n' "${release_dir}"/*.bin
 
       - name: Publish firmware bin files
         uses: softprops/action-gh-release@v2
@@ -286,4 +290,4 @@ jobs:
           name: CommonIOT Firmware ${{ inputs.version }}
           prerelease: ${{ inputs.prerelease }}
           fail_on_unmatched_files: true
-          files: dist/firmware/**/*.bin
+          files: dist/firmware-release/*.bin
